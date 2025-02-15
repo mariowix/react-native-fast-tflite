@@ -1,7 +1,12 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 import * as React from 'react'
 
-import { StyleSheet, View, Text, ActivityIndicator } from 'react-native'
+import {
+  StyleSheet,
+  View,
+  Text,
+  Platform,
+  ActivityIndicator,
+} from 'react-native'
 import {
   Tensor,
   TensorflowModel,
@@ -13,7 +18,6 @@ import {
   useCameraPermission,
   useFrameProcessor,
 } from 'react-native-vision-camera'
-import { useResizePlugin } from 'vision-camera-resize-plugin'
 
 function tensorToString(tensor: Tensor): string {
   return `\n  - ${tensor.dataType} ${tensor.name}[${tensor.shape}]`
@@ -26,20 +30,20 @@ function modelToString(model: TensorflowModel): string {
   )
 }
 
-export default function App(): React.ReactNode {
+export default function App() {
   const { hasPermission, requestPermission } = useCameraPermission()
   const device = useCameraDevice('back')
 
-  // from https://www.kaggle.com/models/tensorflow/efficientdet/frameworks/tfLite
-  const model = useTensorflowModel(require('../assets/efficientdet.tflite'))
+  const model = useTensorflowModel(
+    require('../assets/object_detection_mobile_object_localizer_v1_1_default_1.tflite'),
+    Platform.OS === 'ios' ? 'core-ml' : 'default'
+  )
   const actualModel = model.state === 'loaded' ? model.model : undefined
 
   React.useEffect(() => {
     if (actualModel == null) return
     console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
   }, [actualModel])
-
-  const { resize } = useResizePlugin()
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -50,17 +54,9 @@ export default function App(): React.ReactNode {
       }
 
       console.log(`Running inference on ${frame}`)
-      const resized = resize(frame, {
-        scale: {
-          width: 320,
-          height: 320,
-        },
-        pixelFormat: 'rgb',
-        dataType: 'uint8',
-      })
-      const result = actualModel.runSync([resized])
-      const num_detections = result[3]?.[0] ?? 0
-      console.log('Result: ' + num_detections)
+      const data = frame.toArrayBuffer()
+      const result = actualModel.runSync([data])
+      console.log('Result: ' + result.length)
     },
     [actualModel]
   )
@@ -79,7 +75,6 @@ export default function App(): React.ReactNode {
           style={StyleSheet.absoluteFill}
           isActive={true}
           frameProcessor={frameProcessor}
-          pixelFormat="yuv"
         />
       ) : (
         <Text>No Camera available.</Text>
@@ -101,5 +96,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  box: {
+    width: 60,
+    height: 60,
+    marginVertical: 20,
   },
 })

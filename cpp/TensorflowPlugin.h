@@ -34,7 +34,7 @@ typedef std::function<Buffer(std::string)> FetchURLFunc;
 class TensorflowPlugin : public jsi::HostObject {
 public:
   // TFL Delegate Type
-  enum Delegate { Default, Metal, CoreML, NnApi, AndroidGPU };
+  enum Delegate { Default, Metal, CoreML };
 
 public:
   explicit TensorflowPlugin(TfLiteInterpreter* interpreter, Buffer model, Delegate delegate,

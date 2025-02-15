@@ -11,8 +11,6 @@ type TypedArray =
   | Uint8Array
   | Uint16Array
   | Uint32Array
-  | BigInt64Array
-  | BigUint64Array
 
 declare global {
   /**
@@ -33,12 +31,7 @@ if (result !== true)
 
 console.log('Successfully installed!')
 
-export type TensorflowModelDelegate =
-  | 'default'
-  | 'metal'
-  | 'core-ml'
-  | 'nnapi'
-  | 'android-gpu'
+export type TensorflowModelDelegate = 'default' | 'metal' | 'core-ml'
 
 export interface Tensor {
   /**
@@ -136,7 +129,7 @@ export function loadTensorflowModel(
     uri = source.url
   } else {
     throw new Error(
-      'TFLite: Invalid source passed! Source should be either a React Native require(..) or a `{ url: string }` object!'
+      'Invalid source passed! Source should be either a React Native require(..) or a `{ url: string }` object!'
     )
   }
   return global.__loadTensorflowModel(uri, delegate)

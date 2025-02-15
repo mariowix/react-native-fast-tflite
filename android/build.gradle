@@ -80,12 +80,9 @@ android {
             "**/libc++_shared.so",
             "**/libfbjni.so",
             "**/libjsi.so",
-            "**/libreactnative.so",
             "**/libreactnativejni.so",
             "**/libturbomodulejsijni.so",
             "**/libreact_nativemodule_core.so",
-            "**/libtensorflowlite_jni.so",
-            "**/libtensorflowlite_gpu_jni.so",
     ]
   }
   buildTypes {
@@ -126,14 +123,9 @@ dependencies {
   implementation "com.facebook.react:react-native:+"
 
   // Tensorflow Lite .aar (includes C API via prefabs)
-  implementation "com.google.ai.edge.litert:litert:1.0.1"
-  extractSO("com.google.ai.edge.litert:litert:1.0.1")
-  extractHeaders("com.google.ai.edge.litert:litert:1.0.1")
-
-  // Tensorflow Lite GPU delegate
-  implementation "com.google.ai.edge.litert:litert-gpu:1.0.1"
-  extractSO("com.google.ai.edge.litert:litert-gpu:1.0.1")
-  extractHeaders("com.google.ai.edge.litert:litert-gpu:1.0.1")
+  implementation "org.tensorflow:tensorflow-lite:2.12.0"
+  extractHeaders("org.tensorflow:tensorflow-lite:2.12.0")
+  extractSO("org.tensorflow:tensorflow-lite:2.12.0")
 }
 
 task extractAARHeaders {

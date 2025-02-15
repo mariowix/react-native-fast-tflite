@@ -23,26 +23,24 @@ std::string dataTypeToString(TfLiteType dataType) {
   switch (dataType) {
     case kTfLiteFloat32:
       return "float32";
-    case kTfLiteFloat64:
-      return "float64";
-    case kTfLiteInt4:
-      return "int4";
-    case kTfLiteInt8:
-      return "int8";
-    case kTfLiteInt16:
-      return "int16";
     case kTfLiteInt32:
       return "int32";
+    case kTfLiteUInt8:
+      return "int8";
     case kTfLiteInt64:
       return "int64";
-    case kTfLiteUInt8:
-      return "uint8";
-    case kTfLiteUInt16:
-      return "uint16";
-    case kTfLiteUInt32:
-      return "uint32";
+    case kTfLiteInt16:
+      return "int16";
+    case kTfLiteInt8:
+      return "int8";
+    case kTfLiteFloat64:
+      return "float64";
     case kTfLiteUInt64:
       return "uint64";
+    case kTfLiteUInt32:
+      return "int32";
+    case kTfLiteUInt16:
+      return "int16";
     case kTfLiteNoType:
       return "none";
     case kTfLiteString:
@@ -57,36 +55,10 @@ std::string dataTypeToString(TfLiteType dataType) {
       return "resource";
     case kTfLiteVariant:
       return "variant";
+    case kTfLiteInt4:
+      return "int4";
     default:
-      [[unlikely]];
       return "invalid";
-  }
-}
-
-TfLiteType getTFLDataTypeForTypedArrayKind(TypedArrayKind kind) {
-  switch (kind) {
-    case TypedArrayKind::Int8Array:
-      return kTfLiteInt8;
-    case TypedArrayKind::Int16Array:
-      return kTfLiteInt16;
-    case TypedArrayKind::Int32Array:
-      return kTfLiteInt32;
-    case TypedArrayKind::Uint8Array:
-      return kTfLiteUInt8;
-    case TypedArrayKind::Uint8ClampedArray:
-      return kTfLiteUInt8;
-    case TypedArrayKind::Uint16Array:
-      return kTfLiteUInt16;
-    case TypedArrayKind::Uint32Array:
-      return kTfLiteUInt32;
-    case TypedArrayKind::Float32Array:
-      return kTfLiteFloat32;
-    case TypedArrayKind::Float64Array:
-      return kTfLiteFloat64;
-    case TypedArrayKind::BigInt64Array:
-      return kTfLiteInt64;
-    case TypedArrayKind::BigUint64Array:
-      return kTfLiteUInt64;
   }
 }
 
@@ -114,8 +86,7 @@ size_t TensorHelpers::getTFLTensorDataTypeSize(TfLiteType dataType) {
       return sizeof(uint16_t);
     default:
       [[unlikely]];
-      throw std::runtime_error("TFLite: Unsupported output data type! " +
-                               dataTypeToString(dataType));
+      throw std::runtime_error("Unsupported output data type! " + dataTypeToString(dataType));
   }
 }
 
@@ -155,14 +126,9 @@ TypedArrayBase TensorHelpers::createJSBufferForTensor(jsi::Runtime& runtime,
       return TypedArray<TypedArrayKind::Uint16Array>(runtime, size);
     case kTfLiteUInt32:
       return TypedArray<TypedArrayKind::Uint32Array>(runtime, size);
-    case kTfLiteInt64:
-      return TypedArray<TypedArrayKind::BigInt64Array>(runtime, size);
-    case kTfLiteUInt64:
-      return TypedArray<TypedArrayKind::BigUint64Array>(runtime, size);
     default:
       [[unlikely]];
-      throw std::runtime_error("TFLite: Unsupported tensor data type! " +
-                               dataTypeToString(dataType));
+      throw std::runtime_error("Unsupported tensor data type! " + dataTypeToString(dataType));
   }
 }
 
@@ -174,7 +140,7 @@ void TensorHelpers::updateJSBufferFromTensor(jsi::Runtime& runtime, TypedArrayBa
   void* data = TfLiteTensorData(tensor);
   if (data == nullptr) {
     [[unlikely]];
-    throw std::runtime_error("TFLite: Failed to get data from tensor \"" + name + "\"!");
+    throw std::runtime_error("Failed to get data from tensor \"" + name + "\"!");
   }
 
   // count of bytes, may be larger than count of numbers (e.g. for float32)
@@ -221,48 +187,23 @@ void TensorHelpers::updateJSBufferFromTensor(jsi::Runtime& runtime, TypedArrayBa
           .as<TypedArrayKind::Uint32Array>(runtime)
           .updateUnsafe(runtime, (uint32_t*)data, size);
       break;
-    case kTfLiteInt64:
-      getTypedArray(runtime, jsBuffer)
-          .as<TypedArrayKind::BigInt64Array>(runtime)
-          .updateUnsafe(runtime, (int64_t*)data, size);
-      break;
-    case kTfLiteUInt64:
-      getTypedArray(runtime, jsBuffer)
-          .as<TypedArrayKind::BigUint64Array>(runtime)
-          .updateUnsafe(runtime, (uint64_t*)data, size);
-      break;
     default:
       [[unlikely]];
-      throw jsi::JSError(runtime,
-                         "TFLite: Unsupported output data type! " + dataTypeToString(dataType));
+      throw jsi::JSError(runtime, "Unsupported output data type! " + dataTypeToString(dataType));
   }
 }
 
 void TensorHelpers::updateTensorFromJSBuffer(jsi::Runtime& runtime, TfLiteTensor* tensor,
                                              TypedArrayBase& jsBuffer) {
-#if DEBUG
-  // Validate data-type
-  TypedArrayKind kind = jsBuffer.getKind(runtime);
-  TfLiteType receivedType = getTFLDataTypeForTypedArrayKind(kind);
-  TfLiteType expectedType = TfLiteTensorType(tensor);
-  if (receivedType != expectedType) {
-    [[unlikely]];
-    throw std::runtime_error("TFLite: Invalid input type! Model expected " +
-                             dataTypeToString(expectedType) + ", but received " +
-                             dataTypeToString(receivedType) + "!");
-  }
-#endif
-
-  std::string name = TfLiteTensorName(tensor);
-  jsi::ArrayBuffer buffer = jsBuffer.getBuffer(runtime);
+  auto name = std::string(TfLiteTensorName(tensor));
+  auto buffer = jsBuffer.getBuffer(runtime);
 
 #if DEBUG
-  // Validate size
   int inputBufferSize = buffer.size(runtime);
   int tensorSize = getTensorTotalLength(tensor) * getTFLTensorDataTypeSize(tensor->type);
   if (tensorSize != inputBufferSize) {
     [[unlikely]];
-    throw std::runtime_error("TFLite: Input Buffer size (" + std::to_string(inputBufferSize) +
+    throw std::runtime_error("Input Buffer size (" + std::to_string(inputBufferSize) +
                              ") does not match the Input Tensor's expected size (" +
                              std::to_string(tensorSize) +
                              ")! Make sure to resize the input values accordingly.");
