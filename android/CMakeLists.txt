@@ -9,11 +9,19 @@ find_package(ReactAndroid REQUIRED CONFIG)
 find_package(fbjni REQUIRED CONFIG)
 
 find_library(
-        TFLITE
-        tensorflowlite_jni
-        PATHS "./src/main/cpp/lib/tensorflow/jni/${ANDROID_ABI}"
-        NO_DEFAULT_PATH
-        NO_CMAKE_FIND_ROOT_PATH
+  TFLITE
+  tensorflowlite_jni
+  PATHS "./src/main/cpp/lib/litert/jni/${ANDROID_ABI}"
+  NO_DEFAULT_PATH
+  NO_CMAKE_FIND_ROOT_PATH
+)
+
+find_library(
+  TFLITE_GPU
+  tensorflowlite_gpu_jni
+  PATHS "./src/main/cpp/lib/litert/jni/${ANDROID_ABI}"
+  NO_DEFAULT_PATH
+  NO_CMAKE_FIND_ROOT_PATH
 )
 
 string(APPEND CMAKE_CXX_FLAGS " -DANDROID")
@@ -34,7 +42,7 @@ target_include_directories(
   PRIVATE
   "../cpp"
   "src/main/cpp"
-  "src/main/cpp/lib/tensorflow/headers/"
+  "src/main/cpp/lib/litert/headers"
   "${NODE_MODULES_DIR}/react-native/ReactCommon"
   "${NODE_MODULES_DIR}/react-native/ReactCommon/callinvoker"
   "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule" # <-- CallInvokerHolder JNI wrapper
@@ -46,7 +54,19 @@ target_link_libraries(
   ${PACKAGE_NAME}
   android                         # <-- log
   ReactAndroid::jsi               # <-- jsi.h
-  ReactAndroid::reactnativejni    # <-- CallInvokerImpl
   fbjni::fbjni                    # <-- fbjni.h
   ${TFLITE}
+  ${TFLITE_GPU}
 )
+
+if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
+  target_link_libraries(
+    ${PACKAGE_NAME}
+    ReactAndroid::reactnative     # <-- RN merged so
+  )
+else()
+  target_link_libraries(
+    ${PACKAGE_NAME}
+    ReactAndroid::reactnativejni  # <-- CallInvokerImpl
+  )
+endif()
